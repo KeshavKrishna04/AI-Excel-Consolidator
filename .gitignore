@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.pyc
+
+# Virtual environment
+.venv/
+venv/
+
+# Env variables
+.env
+
+# VSCode
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data files (optional)
+*.csv
+*.xlsx
+*.parquet
+*.pkl
+
+# Logs
+*.log
