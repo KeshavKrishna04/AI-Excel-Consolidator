@@ -1,0 +1,82 @@
+[
+  {
+    "question": "How many total records are present in the Consolidated_Sales sheet?",
+    "expected_answer": "10000"
+  },
+  {
+    "question": "How many rows and columns are there in the Consolidated_Sales sheet?",
+    "expected_answer": "10000 rows, 27 columns"
+  },
+  {
+    "question": "How many unique brands appear in the sales data?",
+    "expected_answer": "2"
+  },
+  {
+    "question": "What are the different pack types available in the dataset?",
+    "expected_answer": "PET"
+  },
+  {
+    "question": "Which state has the highest number of sales records?",
+    "expected_answer": "Maharashtra"
+  },
+  {
+    "question": "Which city appears most frequently in the sales data?",
+    "expected_answer": "Mumbai"
+  },
+  {
+    "question": "Which channel has the most transactions?",
+    "expected_answer": "EC"
+  },
+  {
+    "question": "What are the top 5 brands by frequency in the dataset?",
+    "expected_answer": "Fresh Flow (5147), FRESHFLOW (4853)"
+  },
+  {
+    "question": "How many times does Tetrapack appear in the pack_type column?",
+    "expected_answer": "0"
+  },
+  {
+    "question": "What is the total net sales value across all transactions?",
+    "expected_answer": "848215081.46"
+  },
+  {
+    "question": "What is the average sales quantity per transaction?",
+    "expected_answer": "25.0488"
+  },
+  {
+    "question": "What is the median sales quantity per record?",
+    "expected_answer": "25.0000"
+  },
+  {
+    "question": "What is the maximum sales quantity recorded in a single transaction?",
+    "expected_answer": "49.0000"
+  },
+  {
+    "question": "Which brand has the highest total sales quantity?",
+    "expected_answer": "Fresh Flow (128778.00)"
+  },
+  {
+    "question": "Which state contributes the highest total sales value?",
+    "expected_answer": "Maharashtra (431194036.00)"
+  },
+  {
+    "question": "List the top 5 brands by net sales value.",
+    "expected_answer": "Fresh Flow (436761946.02), FRESHFLOW (411453135.44)"
+  },
+  {
+    "question": "What are the top 3 pack types by sales quantity?",
+    "expected_answer": "PET (250488.00)"
+  },
+  {
+    "question": "Which channel generates the highest revenue?",
+    "expected_answer": "EC (427074141.75)"
+  },
+  {
+    "question": "Does higher discount correlate with higher sales quantity?",
+    "expected_answer": "weak/none"
+  },
+  {
+    "question": "What is the name of the Sales sheet in this workbook? (return the sheet name)",
+    "expected_answer": "Consolidated_Sales"
+  }
+]
