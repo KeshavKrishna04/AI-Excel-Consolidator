@@ -11,6 +11,28 @@ It uses LLM-backed agents to:
 
 The per-sheet workflow is implemented as a **LangGraph graph** (nodes + edges) so the pipeline is explicit, traceable, and easy to extend.
 
+
+
+ADVANCED BENCHMARK EVALUATION SCRIPT
+
+This script evaluates the QA LangGraph agent using multiple layers of metrics.
+
+Metrics implemented:
+
+CORE CORRECTNESS
+- exact_match
+- numeric_match
+- zero_semantic_match
+- list_match
+- semantic_similarity
+- token_overlap
+
+QUALITY METRICS
+- reasoning_score
+- hallucination_score
+
+This evaluation design mimics multi-layer evaluation used in
+OpenAI / Anthropic / LangChain style agent benchmarks.
 ---
 
 ## 🎯 What you get
