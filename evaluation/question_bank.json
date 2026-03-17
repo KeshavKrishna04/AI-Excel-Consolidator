@@ -1,82 +1,82 @@
 [
   {
-    "question": "How many total records are present in the Consolidated_Sales sheet?",
-    "expected_answer": "10000"
+    "question": "How many total records are in Consolidated_Sales and how many columns does it have?",
+    "expected_answer": "10000 rows 27 columns"
   },
   {
-    "question": "How many rows and columns are there in the Consolidated_Sales sheet?",
-    "expected_answer": "10000 rows, 27 columns"
+    "question": "Which brand has the highest net sales value in Consolidated_Sales?",
+    "expected_answer": "Fresh Flow"
   },
   {
-    "question": "How many unique brands appear in the sales data?",
-    "expected_answer": "2"
+    "question": "What are the two channel types in Consolidated_Sales and which has higher total net sales?",
+    "expected_answer": "EC and MT, EC has higher net sales"
   },
   {
-    "question": "What are the different pack types available in the dataset?",
-    "expected_answer": "PET"
-  },
-  {
-    "question": "Which state has the highest number of sales records?",
+    "question": "Which state appears in Consolidated_Sales and what is its approximate gross margin in INR?",
     "expected_answer": "Maharashtra"
   },
   {
-    "question": "Which city appears most frequently in the sales data?",
-    "expected_answer": "Mumbai"
+    "question": "What is the only brand in Consolidated_Nielsen and what is its approximate market share percent?",
+    "expected_answer": "FreshFlow 17"
   },
   {
-    "question": "Which channel has the most transactions?",
-    "expected_answer": "EC"
+    "question": "Which regions appear in Consolidated_Nielsen? List them.",
+    "expected_answer": "West Pan-India East North South"
   },
   {
-    "question": "What are the top 5 brands by frequency in the dataset?",
-    "expected_answer": "Fresh Flow (5147), FRESHFLOW (4853)"
+    "question": "What is the approximate numeric distribution percent for FreshFlow in Nielsen?",
+    "expected_answer": "79"
   },
   {
-    "question": "How many times does Tetrapack appear in the pack_type column?",
-    "expected_answer": "0"
+    "question": "Does Consolidated_Pricing have planned_price_inr and actual_price_inr columns? What are their approximate mean values?",
+    "expected_answer": "Yes planned and actual price"
   },
   {
-    "question": "What is the total net sales value across all transactions?",
-    "expected_answer": "848215081.46"
+    "question": "Which material names appear in Consolidated_Pricing?",
+    "expected_answer": "FreshFlow Mango FF Orange"
   },
   {
-    "question": "What is the average sales quantity per transaction?",
-    "expected_answer": "25.0488"
+    "question": "What brand strength values exist in Consolidated_Competitor (e.g. Strong, Moderate)?",
+    "expected_answer": "Moderate Strong Growing"
   },
   {
-    "question": "What is the median sales quantity per record?",
-    "expected_answer": "25.0000"
+    "question": "Among brands in Consolidated_Competitor with high avg_market_share_percent (around 19-20), which has the lowest avg_price_index?",
+    "expected_answer": "Brand_10 or Brand_42"
   },
   {
-    "question": "What is the maximum sales quantity recorded in a single transaction?",
-    "expected_answer": "49.0000"
+    "question": "Which metric names appear in Consolidated_Baseline?",
+    "expected_answer": "total_nsv gross_margin_percent total_volume market_share"
   },
   {
-    "question": "Which brand has the highest total sales quantity?",
-    "expected_answer": "Fresh Flow (128778.00)"
+    "question": "Compare Fresh Flow and FRESHFLOW in Consolidated_Sales: which has higher net sales and which has higher gross margin?",
+    "expected_answer": "Fresh Flow has higher net sales and higher gross margin"
   },
   {
-    "question": "Which state contributes the highest total sales value?",
-    "expected_answer": "Maharashtra (431194036.00)"
+    "question": "Does Consolidated_Sales have a state with high sales volume? What is it?",
+    "expected_answer": "Yes Maharashtra"
   },
   {
-    "question": "List the top 5 brands by net sales value.",
-    "expected_answer": "Fresh Flow (436761946.02), FRESHFLOW (411453135.44)"
+    "question": "What is the pack type in Consolidated_Sales?",
+    "expected_answer": "PET"
   },
   {
-    "question": "What are the top 3 pack types by sales quantity?",
-    "expected_answer": "PET (250488.00)"
+    "question": "What is the approximate mean or range of price_index_vs_competitor in Consolidated_Pricing?",
+    "expected_answer": "price index greater than 1 or mean above 1"
   },
   {
-    "question": "Which channel generates the highest revenue?",
-    "expected_answer": "EC (427074141.75)"
+    "question": "Which region in Consolidated_Sales has the highest net sales value: PanIndia or West?",
+    "expected_answer": "PanIndia or West both similar"
   },
   {
-    "question": "Does higher discount correlate with higher sales quantity?",
-    "expected_answer": "weak/none"
+    "question": "Which channel in Consolidated_Sales has more transactions, EC or MT?",
+    "expected_answer": "EC has more"
   },
   {
-    "question": "What is the name of the Sales sheet in this workbook? (return the sheet name)",
-    "expected_answer": "Consolidated_Sales"
+    "question": "What is the weighted distribution percent for West region in Consolidated_Nielsen?",
+    "expected_answer": "64"
+  },
+  {
+    "question": "Name one brand from Consolidated_Competitor that has Strong brand_strength and state its approximate avg_price_index.",
+    "expected_answer": "Brand_9 or Brand_11 or similar, price index around 109-111"
   }
 ]

@@ -21,6 +21,8 @@ class QAState(TypedDict, total=False):
     answer: str
     status: str
     reason: Optional[str]
+    context_used: Optional[str]  # Agent's explanation of sources and reasoning
+    usage: Optional[Dict[str, Any]]  # LLM token usage for telemetry
 
 
 def _summarize_workbook_node(state: QAState) -> QAState:
@@ -386,11 +388,21 @@ def _answer_question_node(state: QAState) -> QAState:
 
     result = answer_question_over_summary(question=question, summary=summary)
 
-    return {
+    out: QAState = {
         "answer": result.get("answer", ""),
         "status": result.get("status", "error"),
         "reason": result.get("reason"),
     }
+    ctx = result.get("context_used")
+    if isinstance(ctx, str) and ctx.strip():
+        out["context_used"] = ctx.strip()
+
+    # Propagate LLM usage to the state so downstream evaluation can see token counts.
+    usage = result.get("usage")
+    if isinstance(usage, dict) and usage:
+        out["usage"] = usage
+
+    return out
 
 
 def build_qa_graph():
