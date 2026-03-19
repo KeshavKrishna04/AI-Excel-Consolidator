@@ -1,82 +1,74 @@
 [
   {
-    "question": "How many total records are in Consolidated_Sales and how many columns does it have?",
-    "expected_answer": "10000 rows 27 columns"
+    "question": "Was Avogadro a professor at the University of Turin?",
+    "expected_answer": "Yes"
   },
   {
-    "question": "Which brand has the highest net sales value in Consolidated_Sales?",
-    "expected_answer": "Fresh Flow"
+    "question": "Was Avogadro a professor at the University of Turin?",
+    "expected_answer": "Yes"
   },
   {
-    "question": "What are the two channel types in Consolidated_Sales and which has higher total net sales?",
-    "expected_answer": "EC and MT, EC has higher net sales"
+    "question": "Is Avogadro's number used to compute the results of chemical reactions?",
+    "expected_answer": "Yes"
   },
   {
-    "question": "Which state appears in Consolidated_Sales and what is its approximate gross margin in INR?",
-    "expected_answer": "Maharashtra"
+    "question": "Is Avogadro's number used to compute the results of chemical reactions?",
+    "expected_answer": "Yes"
   },
   {
-    "question": "What is the only brand in Consolidated_Nielsen and what is its approximate market share percent?",
-    "expected_answer": "FreshFlow 17"
+    "question": "What does Avogadro's Law state?",
+    "expected_answer": "The relationship between the masses of the same volume of different gases at the same temperature and pressure corresponds to the relationship between their respective molecular weights"
   },
   {
-    "question": "Which regions appear in Consolidated_Nielsen? List them.",
-    "expected_answer": "West Pan-India East North South"
+    "question": "Who showed that Avogadro's theory held in dilute solutions?",
+    "expected_answer": "Jacobus Henricus van 't Hoff"
   },
   {
-    "question": "What is the approximate numeric distribution percent for FreshFlow in Nielsen?",
-    "expected_answer": "79"
+    "question": "In what language was his 1811 paper published?",
+    "expected_answer": "French"
   },
   {
-    "question": "Does Consolidated_Pricing have planned_price_inr and actual_price_inr columns? What are their approximate mean values?",
-    "expected_answer": "Yes planned and actual price"
+    "question": "Who was Avogadro's wife?",
+    "expected_answer": "Felicita Mazz"
   },
   {
-    "question": "Which material names appear in Consolidated_Pricing?",
-    "expected_answer": "FreshFlow Mango FF Orange"
+    "question": "Why did Avogadro lose his chair at the University of Turin?",
+    "expected_answer": "He was active in the revolutionary movements of 1821 against the king of Sardinia"
   },
   {
-    "question": "What brand strength values exist in Consolidated_Competitor (e.g. Strong, Moderate)?",
-    "expected_answer": "Moderate Strong Growing"
+    "question": "Was Amedeo Avogadro born in Turin?",
+    "expected_answer": "Yes"
   },
   {
-    "question": "Among brands in Consolidated_Competitor with high avg_market_share_percent (around 19-20), which has the lowest avg_price_index?",
-    "expected_answer": "Brand_10 or Brand_42"
+    "question": "Is Avogadro hailed as a founder of the atomic-molecular theory?",
+    "expected_answer": "Yes"
   },
   {
-    "question": "Which metric names appear in Consolidated_Baseline?",
-    "expected_answer": "total_nsv gross_margin_percent total_volume market_share"
+    "question": "Did Johann Josef Loschmidt first calculate the value of Avogadro's number?",
+    "expected_answer": "Yes"
   },
   {
-    "question": "Compare Fresh Flow and FRESHFLOW in Consolidated_Sales: which has higher net sales and which has higher gross margin?",
-    "expected_answer": "Fresh Flow has higher net sales and higher gross margin"
+    "question": "In 1820, Avogadro became a professor of physics where?",
+    "expected_answer": "University of Turin"
   },
   {
-    "question": "Does Consolidated_Sales have a state with high sales volume? What is it?",
-    "expected_answer": "Yes Maharashtra"
+    "question": "Avogadro did not actually use what word?",
+    "expected_answer": "atom"
   },
   {
-    "question": "What is the pack type in Consolidated_Sales?",
-    "expected_answer": "PET"
+    "question": "The number of elementary entities in 1 mole of a substance is known as what?",
+    "expected_answer": "Avogadro constant"
   },
   {
-    "question": "What is the approximate mean or range of price_index_vs_competitor in Consolidated_Pricing?",
-    "expected_answer": "price index greater than 1 or mean above 1"
+    "question": "What would a German call Avogadro's number?",
+    "expected_answer": "Loschmidt number"
   },
   {
-    "question": "Which region in Consolidated_Sales has the highest net sales value: PanIndia or West?",
-    "expected_answer": "PanIndia or West both similar"
+    "question": "Is Amedeo Avogadro Italian?",
+    "expected_answer": "Yes"
   },
   {
-    "question": "Which channel in Consolidated_Sales has more transactions, EC or MT?",
-    "expected_answer": "EC has more"
-  },
-  {
-    "question": "What is the weighted distribution percent for West region in Consolidated_Nielsen?",
-    "expected_answer": "64"
-  },
-  {
-    "question": "Name one brand from Consolidated_Competitor that has Strong brand_strength and state its approximate avg_price_index.",
-    "expected_answer": "Brand_9 or Brand_11 or similar, price index around 109-111"
+    "question": "Did he become a professor before the revolutionary movements against the king of Sardinia?",
+    "expected_answer": "Yes"
   }
 ]

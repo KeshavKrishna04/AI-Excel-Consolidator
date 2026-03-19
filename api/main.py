@@ -181,12 +181,14 @@ def ask_question(payload: QARequest):
     - runs a LangGraph workflow that summarizes the workbook
       and uses an LLM-backed agent to answer the question
     """
-    if not os.path.exists(QA_WORKBOOK_PATH):
+    # Allow any supported dataset format in outputs/ (xlsx/csv/txt/clean).
+    # The graph will resolve the actual dataset file.
+    if not os.path.exists(OUTPUT_DIR):
         raise HTTPException(
             status_code=400,
             detail=(
-                "consolidated_output.xlsx not found in outputs/. "
-                "Run POST /consolidate first to generate the workbook."
+                "No outputs/ folder found. Run POST /consolidate first to generate a dataset, "
+                "or place a supported dataset file in outputs/."
             ),
         )
 
@@ -194,7 +196,8 @@ def ask_question(payload: QARequest):
         result_state = qa_graph.invoke(
             {
                 "question": payload.question,
-                "workbook_path": QA_WORKBOOK_PATH,
+                # Pass the folder; graph will pick the first supported dataset file within.
+                "workbook_path": OUTPUT_DIR,
             }
         )
     except FileNotFoundError as e:

@@ -1,10 +1,12 @@
 from typing import Any, Dict, Optional, TypedDict
 
 import os
+from pathlib import Path
 import pandas as pd
 from langgraph.graph import END, StateGraph
 
 from agents.qa_agent import answer_question_over_summary
+from utils.checkpoint import find_similar_question, write_checkpoint
 
 
 class QAState(TypedDict, total=False):
@@ -16,6 +18,7 @@ class QAState(TypedDict, total=False):
 
     # Intermediate
     summary: Dict[str, Any]
+    _cache_hit: bool  # Internal: True when cache returned answer, skip pipeline
 
     # Output
     answer: str
@@ -27,22 +30,86 @@ class QAState(TypedDict, total=False):
 
 def _summarize_workbook_node(state: QAState) -> QAState:
     """
-    Load consolidated_output.xlsx and build a compact, JSON-serializable
-    summary the LLM can reason over.
-    """
-    workbook_path = state["workbook_path"]
+    Load a dataset file and build a compact, JSON-serializable summary the LLM
+    can reason over.
 
-    if not os.path.exists(workbook_path):
+    Supported formats:
+    - .xlsx: existing multi-sheet Excel summarization (unchanged)
+    - .csv: treated as a single-sheet table
+    - .txt/.clean: treated as unstructured text context
+    """
+    supported_ext = (".xlsx", ".csv", ".txt", ".clean")
+
+    def _pick_first_supported_file(folder: Path) -> Path:
+        if not folder.exists() or not folder.is_dir():
+            raise FileNotFoundError(f"Dataset folder not found: {folder}")
+        for name in sorted(os.listdir(folder)):
+            p = folder / name
+            if p.is_file() and p.suffix.lower() in supported_ext:
+                try:
+                    if p.stat().st_size == 0:
+                        continue
+                except OSError:
+                    continue
+                return p
         raise FileNotFoundError(
-            f"Consolidated workbook not found at: {workbook_path}. "
-            "Run the consolidation pipeline first."
+            f"No supported dataset found in: {folder}. "
+            f"Expected one of: {', '.join(supported_ext)}"
         )
 
-    # Read all sheets into a dict of DataFrames
-    sheets = pd.read_excel(workbook_path, sheet_name=None)
+    def _resolve_dataset_path(raw: str) -> Path:
+        """
+        Resolve the dataset path from the provided workbook_path.
+        - If it's a file and exists: use it.
+        - If it's a directory: pick first supported file inside it.
+        - If it doesn't exist: fall back to scanning ./outputs.
+        """
+        p = Path(raw)
+        if p.exists():
+            return p if p.is_file() else _pick_first_supported_file(p)
+        # Fallback: scan outputs/ so benchmark keeps working even if its default path is missing.
+        return _pick_first_supported_file(Path("outputs"))
+
+    dataset_path = _resolve_dataset_path(state["workbook_path"])
+    suffix = dataset_path.suffix.lower()
+
+    # ---------------------------
+    # Unstructured text datasets
+    # ---------------------------
+    if suffix in {".txt", ".clean"}:
+        try:
+            text_data = dataset_path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            text_data = dataset_path.read_text(encoding="utf-8", errors="replace")
+        if not text_data.strip():
+            raise ValueError(f"Dataset file is empty: {dataset_path}")
+        # Return the full document text. The QA agent is responsible for scanning
+        # it safely (e.g., chunking) to respect model context limits.
+        return {
+            "summary": {
+                "text_data": text_data,
+                "source_file": dataset_path.name,
+            }
+        }
+
+    # ---------------------------
+    # Structured tabular datasets
+    # ---------------------------
+    sheets: Dict[str, pd.DataFrame]
+    if suffix == ".xlsx":
+        # Read all sheets into a dict of DataFrames (existing behavior)
+        sheets = pd.read_excel(str(dataset_path), sheet_name=None)
+    elif suffix == ".csv":
+        df = pd.read_csv(str(dataset_path))
+        sheets = {dataset_path.stem: df}
+    else:
+        raise ValueError(
+            f"Unsupported dataset extension: {dataset_path.suffix} "
+            f"(supported: {', '.join(supported_ext)})"
+        )
 
     if not sheets:
-        raise ValueError("Consolidated workbook is empty (no sheets found).")
+        raise ValueError("Dataset is empty (no sheets found).")
 
     summary: Dict[str, Any] = {
         "sheets": {},
@@ -405,6 +472,81 @@ def _answer_question_node(state: QAState) -> QAState:
     return out
 
 
+def _is_sales_only_query(question: str) -> bool:
+    """True if the question relates only to Consolidated_Sales (not Nielsen, Pricing, etc)."""
+    q = (question or "").lower()
+    if not q:
+        return False
+    other_sheets = ["nielsen", "pricing", "competitor", "baseline"]
+    if any(s in q for s in other_sheets):
+        return False
+    return "sales" in q or "consolidated_sales" in q
+
+
+def _check_cache_node(state: QAState) -> QAState:
+    """
+    If query is Consolidated_Sales only and we have a cache hit, return state with
+    cached answer and _cache_hit=True to skip the full pipeline.
+    """
+    question = state.get("question") or ""
+    if not _is_sales_only_query(question):
+        return {**_state_to_dict(state), "_cache_hit": False}
+
+    match = find_similar_question(question)
+    if match is None:
+        return {**_state_to_dict(state), "_cache_hit": False}
+
+    answer = match.get("answer", "")
+    if not answer:
+        return {**_state_to_dict(state), "_cache_hit": False}
+
+    print("[cache hit]")
+    return {
+        **_state_to_dict(state),
+        "answer": answer,
+        "status": "ok",
+        "context_used": "[cached]",
+        "_cache_hit": True,
+    }
+
+
+def _checkpoint_node(state: QAState) -> QAState:
+    """
+    Append minimal checkpoint entry for Consolidated_Sales queries.
+    Runs only when _is_sales_only_query and we have question + answer.
+    """
+    question = state.get("question") or ""
+    answer = state.get("answer") or ""
+    if not _is_sales_only_query(question) or not answer:
+        return state
+
+    entry = {
+        "question": question[:500],
+        "tables_used": ["Consolidated_Sales"],
+        "answer": answer[:500],
+    }
+    write_checkpoint(entry)
+    return state
+
+
+def _state_to_dict(state: QAState) -> Dict[str, Any]:
+    """Turn TypedDict state into a plain dict for merging."""
+    return dict(state) if isinstance(state, dict) else {}
+
+
+def _route_after_cache(state: QAState) -> str:
+    if state.get("_cache_hit"):
+        return END
+    return "summarize_workbook"
+
+
+def _route_after_answer(state: QAState) -> str:
+    question = state.get("question") or ""
+    if _is_sales_only_query(question):
+        return "checkpoint"
+    return END
+
+
 def build_qa_graph():
     """
     Build a LangGraph workflow that:
@@ -413,12 +555,20 @@ def build_qa_graph():
     """
     workflow = StateGraph(QAState)
 
+    workflow.add_node("check_cache", _check_cache_node)
     workflow.add_node("summarize_workbook", _summarize_workbook_node)
     workflow.add_node("answer_question", _answer_question_node)
+    workflow.add_node("checkpoint", _checkpoint_node)
 
-    workflow.set_entry_point("summarize_workbook")
+    workflow.set_entry_point("check_cache")
+    workflow.add_conditional_edges(
+        "check_cache", _route_after_cache, {END: END, "summarize_workbook": "summarize_workbook"}
+    )
     workflow.add_edge("summarize_workbook", "answer_question")
-    workflow.add_edge("answer_question", END)
+    workflow.add_conditional_edges(
+        "answer_question", _route_after_answer, {"checkpoint": "checkpoint", END: END}
+    )
+    workflow.add_edge("checkpoint", END)
 
     return workflow.compile()
 

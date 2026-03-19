@@ -84,9 +84,22 @@ def export_pipeline_png(png_path: Path):
     try:
         png = drawable.draw_png()
     except Exception:
-        png = _render_mermaid_png_via_mermaid_ink(mermaid)
+        try:
+            png = _render_mermaid_png_via_mermaid_ink(mermaid)
+        except Exception as exc:
+            # Best-effort only: graph visualization must not block benchmarks.
+            print(
+                f"Warning: failed to export pipeline PNG to {png_path}. "
+                f"Install pygraphviz for local rendering, or check network access. "
+                f"Details: {exc}"
+            )
+            return
 
-    png_path.write_bytes(png)
+    try:
+        png_path.write_bytes(png)
+    except Exception as exc:
+        print(f"Warning: failed to write pipeline PNG to {png_path}: {exc}")
+        return
 
 
 # -----------------------------------------------------------
