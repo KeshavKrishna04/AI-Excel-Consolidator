@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, TypedDict
+from typing import Any, Dict, Optional, TypedDict, Tuple
 
 import os
 from pathlib import Path
@@ -6,7 +6,7 @@ import pandas as pd
 from langgraph.graph import END, StateGraph
 
 from agents.qa_agent import answer_question_over_summary
-from utils.checkpoint import find_similar_question, write_checkpoint
+from utils.cache_utils import find_similar_cache, load_cache, now_iso, save_checkpoint
 
 
 class QAState(TypedDict, total=False):
@@ -19,6 +19,9 @@ class QAState(TypedDict, total=False):
     # Intermediate
     summary: Dict[str, Any]
     _cache_hit: bool  # Internal: True when cache returned answer, skip pipeline
+    source: str  # "cached" (newly stored) | "reused" (served from cache) | ""
+    source_file: str  # detected dataset file name (e.g., "volta.clean")
+    cache_lookup_seconds: float  # time spent in cache lookup
 
     # Output
     answer: str
@@ -26,6 +29,55 @@ class QAState(TypedDict, total=False):
     reason: Optional[str]
     context_used: Optional[str]  # Agent's explanation of sources and reasoning
     usage: Optional[Dict[str, Any]]  # LLM token usage for telemetry
+
+
+SUPPORTED_DATASET_EXT: Tuple[str, ...] = (".xlsx", ".csv", ".txt", ".clean")
+
+
+def _pick_first_supported_file(folder: Path) -> Path:
+    if not folder.exists() or not folder.is_dir():
+        raise FileNotFoundError(f"Dataset folder not found: {folder}")
+
+    candidates: list[Path] = []
+    for name in os.listdir(folder):
+        p = folder / name
+        if p.is_file() and p.suffix.lower() in SUPPORTED_DATASET_EXT:
+            try:
+                if p.stat().st_size == 0:
+                    continue
+            except OSError:
+                continue
+            candidates.append(p)
+
+    if candidates:
+        # Prefer the most recently modified supported dataset file.
+        ranked = []
+        for p in candidates:
+            try:
+                ranked.append((float(p.stat().st_mtime), p.name.lower(), p))
+            except OSError:
+                continue
+        if ranked:
+            ranked.sort(key=lambda t: (t[0], t[1]), reverse=True)
+            return ranked[0][2]
+
+    raise FileNotFoundError(
+        f"No supported dataset found in: {folder}. "
+        f"Expected one of: {', '.join(SUPPORTED_DATASET_EXT)}"
+    )
+
+
+def _resolve_dataset_path(raw: str) -> Path:
+    """
+    Resolve dataset path from the provided workbook_path:
+    - If it's an existing file: use it.
+    - If it's an existing directory: pick first supported file inside it.
+    - If it doesn't exist: fall back to scanning ./outputs (keeps benchmark stable).
+    """
+    p = Path(raw)
+    if p.exists():
+        return p if p.is_file() else _pick_first_supported_file(p)
+    return _pick_first_supported_file(Path("outputs"))
 
 
 def _summarize_workbook_node(state: QAState) -> QAState:
@@ -38,38 +90,6 @@ def _summarize_workbook_node(state: QAState) -> QAState:
     - .csv: treated as a single-sheet table
     - .txt/.clean: treated as unstructured text context
     """
-    supported_ext = (".xlsx", ".csv", ".txt", ".clean")
-
-    def _pick_first_supported_file(folder: Path) -> Path:
-        if not folder.exists() or not folder.is_dir():
-            raise FileNotFoundError(f"Dataset folder not found: {folder}")
-        for name in sorted(os.listdir(folder)):
-            p = folder / name
-            if p.is_file() and p.suffix.lower() in supported_ext:
-                try:
-                    if p.stat().st_size == 0:
-                        continue
-                except OSError:
-                    continue
-                return p
-        raise FileNotFoundError(
-            f"No supported dataset found in: {folder}. "
-            f"Expected one of: {', '.join(supported_ext)}"
-        )
-
-    def _resolve_dataset_path(raw: str) -> Path:
-        """
-        Resolve the dataset path from the provided workbook_path.
-        - If it's a file and exists: use it.
-        - If it's a directory: pick first supported file inside it.
-        - If it doesn't exist: fall back to scanning ./outputs.
-        """
-        p = Path(raw)
-        if p.exists():
-            return p if p.is_file() else _pick_first_supported_file(p)
-        # Fallback: scan outputs/ so benchmark keeps working even if its default path is missing.
-        return _pick_first_supported_file(Path("outputs"))
-
     dataset_path = _resolve_dataset_path(state["workbook_path"])
     suffix = dataset_path.suffix.lower()
 
@@ -115,6 +135,7 @@ def _summarize_workbook_node(state: QAState) -> QAState:
         "sheets": {},
         "analytics": {},
     }
+    summary["source_file"] = dataset_path.name
 
     # ---------- Per-sheet structural summary ----------
     for sheet_name, df in sheets.items():
@@ -485,48 +506,77 @@ def _is_sales_only_query(question: str) -> bool:
 
 def _check_cache_node(state: QAState) -> QAState:
     """
-    If query is Consolidated_Sales only and we have a cache hit, return state with
-    cached answer and _cache_hit=True to skip the full pipeline.
+    Generic cache lookup for any supported dataset type.
+    If cache hit, return cached answer and _cache_hit=True to skip the full pipeline.
     """
+    import time
+
     question = state.get("question") or ""
-    if not _is_sales_only_query(question):
-        return {**_state_to_dict(state), "_cache_hit": False}
+    try:
+        dataset_path = _resolve_dataset_path(state.get("workbook_path", "outputs"))
+        source_file = dataset_path.name
+    except Exception:
+        source_file = ""
 
-    match = find_similar_question(question)
-    if match is None:
-        return {**_state_to_dict(state), "_cache_hit": False}
+    t0 = time.perf_counter()
+    entries = load_cache()
+    match = find_similar_cache(question, entries, source_file=source_file or None)
+    lookup_elapsed = time.perf_counter() - t0
 
-    answer = match.get("answer", "")
-    if not answer:
-        return {**_state_to_dict(state), "_cache_hit": False}
+    if match is not None and str(match.get("answer") or "").strip():
+        print("CACHE HIT")
+        return {
+            **_state_to_dict(state),
+            "answer": str(match.get("answer") or "").strip(),
+            "status": "ok",
+            "context_used": "[reused]",
+            "_cache_hit": True,
+            "source": "reused",
+            "source_file": source_file,
+            "cache_lookup_seconds": float(lookup_elapsed),
+        }
 
-    print("[cache hit]")
+    print("CACHE MISS")
     return {
         **_state_to_dict(state),
-        "answer": answer,
-        "status": "ok",
-        "context_used": "[cached]",
-        "_cache_hit": True,
+        "_cache_hit": False,
+        "source": "",
+        "source_file": source_file,
+        "cache_lookup_seconds": float(lookup_elapsed),
     }
 
 
 def _checkpoint_node(state: QAState) -> QAState:
     """
-    Append minimal checkpoint entry for Consolidated_Sales queries.
-    Runs only when _is_sales_only_query and we have question + answer.
+    Append a minimal checkpoint entry for any supported dataset type.
+    Runs only when we have question + answer and the result was not reused.
     """
     question = state.get("question") or ""
     answer = state.get("answer") or ""
-    if not _is_sales_only_query(question) or not answer:
+    if not question or not answer:
+        return state
+    if state.get("source") == "reused":
         return state
 
+    summary = state.get("summary") or {}
+    source_file = state.get("source_file") or str(summary.get("source_file") or "")
+
+    tables_used = []
+    if isinstance(summary, dict) and "sheets" in summary and isinstance(summary.get("sheets"), dict):
+        tables_used = list(summary["sheets"].keys())[:10]
+    elif source_file:
+        tables_used = [source_file]
+
     entry = {
-        "question": question[:500],
-        "tables_used": ["Consolidated_Sales"],
-        "answer": answer[:500],
+        "question": question[:1000],
+        "tables_used": tables_used,
+        "answer": answer[:2000],
+        "timestamp": now_iso(),
+        "source_file": source_file,
     }
-    write_checkpoint(entry)
-    return state
+    save_checkpoint(entry)
+    print("[checkpoint] written")
+    return {**_state_to_dict(state), "source": "cached"}
 
 
 def _state_to_dict(state: QAState) -> Dict[str, Any]:
@@ -541,10 +591,9 @@ def _route_after_cache(state: QAState) -> str:
 
 
 def _route_after_answer(state: QAState) -> str:
-    question = state.get("question") or ""
-    if _is_sales_only_query(question):
-        return "checkpoint"
-    return END
+    # Always checkpoint after answering (all dataset types).
+    # Cache hits never reach this node, so we won't duplicate log entries.
+    return "checkpoint"
 
 
 def build_qa_graph():

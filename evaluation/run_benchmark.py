@@ -441,6 +441,8 @@ def run_for_workbook(
             agent = str(state.get("answer", "")).strip()
             context_used = str(state.get("context_used", "") or "").strip()
             token_usage = _extract_token_usage(state)
+            source = str(state.get("source", "") or "").strip()
+            cache_lookup_seconds = state.get("cache_lookup_seconds")
         else:
             agent = ""
             context_used = ""
@@ -449,6 +451,8 @@ def run_for_workbook(
                 completion_tokens=None,
                 total_tokens=None,
             )
+            source = ""
+            cache_lookup_seconds = None
 
         print(
             f"Q{idx} latency: {elapsed:.2f}s tokens: "
@@ -470,6 +474,8 @@ def run_for_workbook(
                 context_used=context_used,
                 response_time_seconds=f"{elapsed:.4f}",
                 latency_seconds=elapsed,
+                source=source,
+                cache_lookup_seconds=cache_lookup_seconds,
                 prompt_tokens=token_usage["prompt_tokens"],
                 completion_tokens=token_usage["completion_tokens"],
                 total_tokens=token_usage["total_tokens"],
@@ -595,9 +601,9 @@ def generate_report(
     md.append("\n## Detailed Results\n")
 
     md.append(
-        "|Question|Expected|Agent|Correct|Reasoning|Hallucination|Latency (seconds)|Tokens|\n"
+        "|Question|Source|Expected|Agent|Correct|Reasoning|Hallucination|Latency (seconds)|Tokens|\n"
     )
-    md.append("|---|---|---|---|---|---|---|---|\n")
+    md.append("|---|---|---|---|---|---|---|---|---|\n")
 
     for _, r in df.iterrows():
 
@@ -620,8 +626,14 @@ def generate_report(
             f"{int(tokens_val)}" if tokens_val is not None and pd.notna(tokens_val) else "N/A"
         )
 
+        src = ""
+        if "source" in r and not pd.isna(r["source"]):
+            s = str(r["source"] or "").strip()
+            if s in {"cached", "reused"}:
+                src = f"[{s}]"
+
         md.append(
-            f"|{r['question']}|{r['expected_answer']}|{r['agent_answer']}|"
+            f"|{r['question']}|{src}|{r['expected_answer']}|{r['agent_answer']}|"
             f"{'YES' if r['overall_correct'] else 'NO'}|"
             f"{r['reasoning_score']:.2f}|{r['hallucination_score']:.2f}|"
             f"{latency_str}|{tokens_str}|\n"
